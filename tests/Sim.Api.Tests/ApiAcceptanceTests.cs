@@ -1,21 +1,33 @@
 using System.Net;
 using System.Net.Http.Json;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Sim.Api.Tests;
 
 public sealed class ApiAcceptanceTests : IClassFixture<WebApplicationFactory<Program>>
 {
     private readonly HttpClient _client;
+    private readonly WebApplicationFactory<Program> _factory;
 
     public ApiAcceptanceTests(WebApplicationFactory<Program> factory)
     {
-        _client = factory.WithWebHostBuilder(builder =>
+        _factory = factory.WithWebHostBuilder(builder =>
         {
             builder.UseSetting("environment", "Testing");
             builder.UseSetting("Testing:DatabaseName", Guid.NewGuid().ToString("N"));
-        }).CreateClient();
+        });
+        _client = _factory.CreateClient();
+    }
+
+    [Fact]
+    public void Testing_environment_uses_sqlite_provider()
+    {
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<SimDbContext>();
+
+        Assert.Equal("Microsoft.EntityFrameworkCore.Sqlite", db.Database.ProviderName);
     }
 
     [Fact]

@@ -5,16 +5,22 @@ ASP.NET Core Web API for centralized SIM, customer, collaborator, order, alert, 
 ## Run
 
 ```bash
-export ConnectionStrings__DefaultConnection='Host=localhost;Port=5432;Database=sim;Username=postgres;Password=postgres'
 dotnet restore
 dotnet run --project src/Sim.Api
+```
+
+By default the API uses SQLite at `sim.local.db` for local/test runs while no PostgreSQL connection string is available.
+To use PostgreSQL later, set:
+
+```bash
+export ConnectionStrings__DefaultConnection='Host=localhost;Port=5432;Database=sim;Username=postgres;Password=postgres'
 ```
 
 Swagger: `http://localhost:5000/swagger` or the launch URL printed by `dotnet run`.
 
 ## PostgreSQL schema
 
-Initial PostgreSQL schema lives at `src/Sim.Api/Migrations/001_initial_postgres.sql`.
+Initial PostgreSQL schema lives at `src/Sim.Api/Migrations/001_initial_postgres.sql`. EF mappings keep snake_case PostgreSQL identifiers while SQLite is used temporarily for local/testing.
 
 ## API groups
 

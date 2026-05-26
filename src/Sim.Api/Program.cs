@@ -5,11 +5,29 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddDbContext<SimDbContext>(options =>
 {
-    if (builder.Environment.IsEnvironment("Testing")) options.UseInMemoryDatabase(builder.Configuration["Testing:DatabaseName"] ?? Guid.NewGuid().ToString("N"));
-    else options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection") ?? "Host=localhost;Port=5432;Database=sim;Username=postgres;Password=postgres");
+    var postgresConnection = builder.Configuration.GetConnectionString("DefaultConnection");
+    if (!string.IsNullOrWhiteSpace(postgresConnection))
+    {
+        options.UseNpgsql(postgresConnection);
+        return;
+    }
+
+    var sqliteConnection = builder.Environment.IsEnvironment("Testing")
+        ? $"Data Source={Path.Combine(Path.GetTempPath(), builder.Configuration["Testing:DatabaseName"] ?? Guid.NewGuid().ToString("N"))}.db"
+        : builder.Configuration.GetConnectionString("Sqlite") ?? "Data Source=sim.local.db";
+    options.UseSqlite(sqliteConnection);
 });
 
 var app = builder.Build();
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<SimDbContext>();
+    if (db.Database.IsSqlite())
+    {
+        db.Database.OpenConnection();
+        db.Database.EnsureCreated();
+    }
+}
 app.UseSwagger();
 app.UseSwaggerUI();
 
@@ -32,11 +50,12 @@ api.MapGet("/dashboard", async (SimDbContext db, string period = "day") =>
     var (from, to) = Period(period);
     var today = DateOnly.FromDateTime(DateTime.UtcNow);
     var alertUntil = today.AddDays(7);
+    var periodOrders = db.Orders.Where(x => x.OrderedAt >= from && x.OrderedAt <= to);
     return new DashboardDto(
         await db.Sims.CountAsync(),
-        await db.Orders.CountAsync(x => x.OrderedAt >= from && x.OrderedAt <= to),
+        await periodOrders.CountAsync(),
         await db.Customers.CountAsync(),
-        await db.Orders.Where(x => x.OrderedAt >= from && x.OrderedAt <= to).SumAsync(x => x.Revenue),
+        (await periodOrders.Select(x => x.Revenue).ToListAsync()).Sum(),
         await db.Sims.CountAsync(x => x.ExpiryDate >= today && x.ExpiryDate <= alertUntil));
 });
 api.MapGet("/reports/customers", async (SimDbContext db) => await db.Customers.ToListAsync());
@@ -45,7 +64,7 @@ api.MapGet("/reports/collaborators", async (SimDbContext db) => await db.Collabo
 api.MapGet("/reports/revenue", async (SimDbContext db, DateOnly? from, DateOnly? to) =>
 {
     var orders = FilterDates(db.Orders, from, to);
-    return new RevenueReportDto(await orders.SumAsync(x => x.Revenue), await orders.CountAsync());
+    return new RevenueReportDto((await orders.Select(x => x.Revenue).ToListAsync()).Sum(), await orders.CountAsync());
 });
 api.MapGet("/reports/expiring-sims", async (SimDbContext db, int days = 7) =>
 {
