@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Http.Json;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Mvc.Testing;
 
 namespace Sim.Api.Tests;
@@ -10,7 +11,11 @@ public sealed class ApiAcceptanceTests : IClassFixture<WebApplicationFactory<Pro
 
     public ApiAcceptanceTests(WebApplicationFactory<Program> factory)
     {
-        _client = factory.WithWebHostBuilder(builder => builder.UseSetting("environment", "Testing")).CreateClient();
+        _client = factory.WithWebHostBuilder(builder =>
+        {
+            builder.UseSetting("environment", "Testing");
+            builder.UseSetting("Testing:DatabaseName", Guid.NewGuid().ToString("N"));
+        }).CreateClient();
     }
 
     [Fact]
@@ -64,4 +69,28 @@ public sealed class ApiAcceptanceTests : IClassFixture<WebApplicationFactory<Pro
     private sealed record ExpiringSimDto(Guid Id, string PhoneNumber, string Carrier, DateOnly ExpiryDate, int DaysUntilExpiry);
     private sealed record DashboardDto(int SimCount, int OrderCount, int CustomerCount, decimal Revenue, int AlertCount);
     private sealed record RevenueReportDto(decimal TotalRevenue, int OrderCount);
+}
+
+public sealed class PostgreSqlMappingTests
+{
+    [Fact]
+    public void Ef_model_matches_postgres_schema_identifiers()
+    {
+        var options = new DbContextOptionsBuilder<SimDbContext>()
+            .UseNpgsql("Host=localhost;Database=sim;Username=postgres;Password=postgres")
+            .Options;
+
+        using var db = new SimDbContext(options);
+        var sim = db.Model.FindEntityType(typeof(SimCard))!;
+        var customer = db.Model.FindEntityType(typeof(Customer))!;
+        var order = db.Model.FindEntityType(typeof(Order))!;
+
+        Assert.Equal("sims", sim.GetTableName());
+        Assert.Equal("phone_number", sim.FindProperty(nameof(SimCard.PhoneNumber))!.GetColumnName());
+        Assert.Equal("activation_date", sim.FindProperty(nameof(SimCard.ActivationDate))!.GetColumnName());
+        Assert.Equal("customers", customer.GetTableName());
+        Assert.Equal("phone_numbers", customer.FindProperty(nameof(Customer.PhoneNumbers))!.GetColumnName());
+        Assert.Equal("orders", order.GetTableName());
+        Assert.Equal("collaborator_id", order.FindProperty(nameof(Order.CollaboratorId))!.GetColumnName());
+    }
 }
