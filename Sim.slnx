@@ -1,6 +1,9 @@
 <Solution>
   <Folder Name="/src/">
     <Project Path="src/Sim.Api/Sim.Api.csproj" />
+    <Project Path="src/Sim.Application/Sim.Application.csproj" />
+    <Project Path="src/Sim.Domain/Sim.Domain.csproj" />
+    <Project Path="src/Sim.Infrastructure/Sim.Infrastructure.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Sim.Api.Tests/Sim.Api.Tests.csproj" />

@@ -32,4 +32,12 @@ Initial PostgreSQL schema lives at `src/Sim.Api/Migrations/001_initial_postgres.
 - `/api/v1/dashboard?period=day|week|month`
 - `/api/v1/reports/customers`, `/orders`, `/collaborators`, `/revenue`, `/expiring-sims`
 
+## Project layout
+
+- `src/Sim.Domain`: entities and domain base types.
+- `src/Sim.Application`: request/response contracts shared by API flows.
+- `src/Sim.Infrastructure`: EF Core `SimDbContext` and persistence mappings.
+- `src/Sim.Api`: minimal API endpoints, provider selection, Swagger.
+- `tests/Sim.Api.Tests`: API acceptance and architecture boundary tests.
+
 No auth is configured per approved scope.

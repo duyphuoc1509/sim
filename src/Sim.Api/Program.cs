@@ -1,4 +1,7 @@
 using Microsoft.EntityFrameworkCore;
+using Sim.Application.Contracts;
+using Sim.Domain.Entities;
+using Sim.Infrastructure.Persistence;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddEndpointsApiExplorer();
@@ -91,60 +94,3 @@ static void MapCrud<TEntity, TRequest>(RouteGroupBuilder api, string route, Acti
 }
 
 public partial class Program { }
-public sealed class SimDbContext(DbContextOptions<SimDbContext> options) : DbContext(options)
-{
-    public DbSet<SimCard> Sims => Set<SimCard>(); public DbSet<Customer> Customers => Set<Customer>(); public DbSet<Collaborator> Collaborators => Set<Collaborator>(); public DbSet<Order> Orders => Set<Order>();
-    protected override void OnModelCreating(ModelBuilder modelBuilder)
-    {
-        modelBuilder.Entity<SimCard>(entity =>
-        {
-            entity.ToTable("sims");
-            entity.Property(x => x.Id).HasColumnName("id");
-            entity.Property(x => x.PhoneNumber).HasColumnName("phone_number");
-            entity.Property(x => x.Carrier).HasColumnName("carrier");
-            entity.Property(x => x.Status).HasColumnName("status");
-            entity.Property(x => x.ActivationDate).HasColumnName("activation_date");
-            entity.Property(x => x.ExpiryDate).HasColumnName("expiry_date");
-        });
-        modelBuilder.Entity<Customer>(entity =>
-        {
-            entity.ToTable("customers");
-            entity.Property(x => x.Id).HasColumnName("id");
-            entity.Property(x => x.FullName).HasColumnName("full_name");
-            entity.Property(x => x.IdentityNumber).HasColumnName("identity_number");
-            entity.Property(x => x.PhoneNumbers).HasColumnName("phone_numbers").HasColumnType("text[]");
-        });
-        modelBuilder.Entity<Collaborator>(entity =>
-        {
-            entity.ToTable("collaborators");
-            entity.Property(x => x.Id).HasColumnName("id");
-            entity.Property(x => x.FullName).HasColumnName("full_name");
-            entity.Property(x => x.PhoneNumber).HasColumnName("phone_number");
-            entity.Property(x => x.Email).HasColumnName("email");
-        });
-        modelBuilder.Entity<Order>(entity =>
-        {
-            entity.ToTable("orders");
-            entity.Property(x => x.Id).HasColumnName("id");
-            entity.Property(x => x.CustomerId).HasColumnName("customer_id");
-            entity.Property(x => x.SimId).HasColumnName("sim_id");
-            entity.Property(x => x.CollaboratorId).HasColumnName("collaborator_id");
-            entity.Property(x => x.Status).HasColumnName("status");
-            entity.Property(x => x.Revenue).HasColumnName("revenue").HasPrecision(18, 2);
-            entity.Property(x => x.OrderedAt).HasColumnName("ordered_at");
-        });
-    }
-}
-public abstract class Entity { public Guid Id { get; set; } }
-public sealed class SimCard : Entity { public string PhoneNumber { get; set; } = ""; public string Carrier { get; set; } = ""; public string Status { get; set; } = "Available"; public DateOnly ActivationDate { get; set; } public DateOnly ExpiryDate { get; set; } }
-public sealed class Customer : Entity { public string FullName { get; set; } = ""; public string IdentityNumber { get; set; } = ""; public List<string> PhoneNumbers { get; set; } = []; }
-public sealed class Collaborator : Entity { public string FullName { get; set; } = ""; public string PhoneNumber { get; set; } = ""; public string? Email { get; set; } }
-public sealed class Order : Entity { public Guid CustomerId { get; set; } public Guid SimId { get; set; } public Guid? CollaboratorId { get; set; } public string Status { get; set; } = "Pending"; public decimal Revenue { get; set; } public DateOnly OrderedAt { get; set; } }
-public sealed record SimRequest(string PhoneNumber, string Carrier, string Status, DateOnly ActivationDate, DateOnly ExpiryDate);
-public sealed record CustomerRequest(string FullName, string IdentityNumber, List<string> PhoneNumbers);
-public sealed record CollaboratorRequest(string FullName, string PhoneNumber, string? Email);
-public sealed record OrderRequest(Guid CustomerId, Guid SimId, Guid? CollaboratorId, string Status, decimal Revenue, DateOnly OrderedAt);
-public sealed record ExpiringSimDto(Guid Id, string PhoneNumber, string Carrier, DateOnly ExpiryDate, int DaysUntilExpiry);
-public sealed record DashboardDto(int SimCount, int OrderCount, int CustomerCount, decimal Revenue, int AlertCount);
-public sealed record RevenueReportDto(decimal TotalRevenue, int OrderCount);
-public sealed record ApiError(string Code, string Message);

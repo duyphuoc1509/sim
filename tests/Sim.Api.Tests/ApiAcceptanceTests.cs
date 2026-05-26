@@ -3,6 +3,8 @@ using System.Net.Http.Json;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Sim.Domain.Entities;
+using Sim.Infrastructure.Persistence;
 
 namespace Sim.Api.Tests;
 

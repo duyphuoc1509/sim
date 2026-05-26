@@ -25,6 +25,9 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Sim.Api\Sim.Api.csproj" />
+    <ProjectReference Include="..\..\src\Sim.Domain\Sim.Domain.csproj" />
+    <ProjectReference Include="..\..\src\Sim.Application\Sim.Application.csproj" />
+    <ProjectReference Include="..\..\src\Sim.Infrastructure\Sim.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>
